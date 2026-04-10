@@ -193,12 +193,6 @@
   }
   .headline-reach {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-  .headline-creative {
-    display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     margin-bottom: 32px;
@@ -246,40 +240,6 @@
     font-size: 11px;
     color: var(--muted);
   }
-
-  /* section divider */
-  .section-divider {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 14px;
-    margin-top: 4px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .section-divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  .reach-note {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent3);
-    border-radius: 4px;
-    padding: 10px 14px;
-    font-size: 11px;
-    color: var(--muted);
-    margin-bottom: 16px;
-    line-height: 1.6;
-  }
-  .reach-note strong { color: var(--accent3); }
 
   /* charts row */
   .charts-row {
@@ -468,11 +428,6 @@
         <label>Aggregate monthly fcap per user <span class="val" id="v-mf-after">150</span></label>
         <input type="range" id="s-mf-after" min="10" max="600" step="5" value="150">
       </div>
-      <div class="field">
-        <label>Binge factor (daily watch variance) <span class="val" id="v-binge">1.5</span>×</label>
-        <input type="range" id="s-binge" min="1.0" max="4.0" step="0.1" value="1.5">
-        <p class="hint">How unevenly users consume across days. 1.0 = perfectly uniform. Higher = some users binge early and exhaust their monthly cap sooner.</p>
-      </div>
     </div>
 
     <button class="run-btn" onclick="runSim()">▶ RUN SIMULATION</button>
@@ -515,7 +470,6 @@ bindSlider('s-overlap',     'v-overlap',     fmtInt);
 bindSlider('s-camp-after',  'v-camp-after',  fmtInt);
 bindSlider('s-df-after',    'v-df-after',    fmtInt);
 bindSlider('s-mf-after',    'v-mf-after',    fmtInt);
-bindSlider('s-binge',       'v-binge',       n => n.toFixed(1));
 
 // ── Distribution preview ──
 function drawDist() {
@@ -571,7 +525,6 @@ function runSim() {
   const campAfter    = +document.getElementById('s-camp-after').value;
   const dfAfter      = +document.getElementById('s-df-after').value;
   const mfAfter      = +document.getElementById('s-mf-after').value;
-  const binge        = +document.getElementById('s-binge').value;
 
   // User segments
   const medPct   = (1 - puPct) * 0.35;
@@ -643,61 +596,16 @@ function runSim() {
   const monthlyAfter_heavy = nHeavy * Math.min(effDailyAfter_heavy * 30, mfAfter);
   const monthlyAfter_total = monthlyAfter_light + monthlyAfter_med + monthlyAfter_heavy;
 
-  // ══════════════════════════════════
-  //   ADDRESSABLE REACH EROSION MODEL
-  // ══════════════════════════════════
+  // ── REACH COMPUTATION ──
+  // Daily reach = unique users who see ≥1 promo impression that day.
+  // A user is "reached" if their effective daily promo slots > 0 AND they are not
+  // fully blocked by the new aggregate cap (cap > 0 means they still see ≥1).
   //
-  // "Addressable reach" = users who have NOT yet exhausted their monthly fcap.
-  // Once a user's cumulative monthly impressions hit mfAfter, they drop out of
-  // the addressable pool for the rest of the month.
-  //
-  // Model: each user's daily consumption is their effDailyAfter value, but with
-  // day-to-day variance controlled by the binge factor.
-  // We model the distribution of "day of exhaustion" across users using a
-  // gamma-distributed cumulative consumption model.
-  //
-  // For a user with mean daily consumption μ and binge factor b (CV = b-1),
-  // their cumulative consumption by day D is roughly Normal(μD, σ²D) where
-  // σ = μ * (b - 1). They exhaust their cap on the day their cumulative hits mfAfter.
-  // The fraction of users exhausted by day D:
-  //   P(exhaust by D) = P(cumulative_D ≥ mfAfter)
-  //                   = Φ((μD - mfAfter) / (σ * √D))   [CLT approximation]
-  //
-  // Addressable fraction on day D = 1 - P(exhausted by D)
-  // Applied per segment, weighted by segment size.
-
-  function normalCDF(x) {
-    // Approximation of Φ(x)
-    const t = 1 / (1 + 0.2316419 * Math.abs(x));
-    const d = 0.3989423 * Math.exp(-x * x / 2);
-    const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.7814779 + t * (-1.8212560 + t * 1.3302744))));
-    return x >= 0 ? 1 - p : p;
-  }
-
-  function addressableFracOnDay(day, meanDaily, mfCap, bingeFactor) {
-    if (meanDaily <= 0) return 1;
-    // Expected cumulative by this day
-    const mu = meanDaily * day;
-    // Std dev of cumulative: σ_daily = meanDaily*(bingeFactor-1), σ_cumulative = σ_daily*√day
-    const sigma_daily = meanDaily * Math.max(0, bingeFactor - 1);
-    const sigma_cum = sigma_daily * Math.sqrt(day);
-    if (sigma_cum < 0.001) {
-      // No variance: deterministic exhaustion
-      return mu >= mfCap ? 0 : 1;
-    }
-    const zScore = (mu - mfCap) / sigma_cum;
-    const pExhausted = normalCDF(zScore);
-    return Math.max(0, 1 - pExhausted);
-  }
-
-  // BEFORE: monthly cap per user = mfBefore × campaigns_eligible
-  // This is so high that almost no user exhausts it in a month
-  const effMonthlyCap_before = mfBefore * Math.min(overlap, campBefore);
-
-  // AFTER: aggregate monthly cap = mfAfter
-  const effMonthlyCap_after = mfAfter;
-
-  // Build day-by-day addressable reach curve for days 1–30
+  // BEFORE: Any user with ≥1 promo slot is reached. Since light/med/power all have >0,
+  //   daily reach before = 100% of DAU eligible for promos.
+  //   But not every user watches every day — assume a daily active fraction per segment:
+  //   Light users by definition are low-engagement; not all watch daily.
+  //   We use: light=60% watch daily, med=80%, power=95% (power users are daily viewers)
   const dailyActiveFrac_light = 0.60;
   const dailyActiveFrac_med   = 0.80;
   const dailyActiveFrac_heavy = 0.95;
@@ -705,117 +613,93 @@ function runSim() {
   const dailyActive_light = Math.round(nLight * dailyActiveFrac_light);
   const dailyActive_med   = Math.round(nMed   * dailyActiveFrac_med);
   const dailyActive_heavy = Math.round(nHeavy * dailyActiveFrac_heavy);
-  const totalDailyActive  = dailyActive_light + dailyActive_med + dailyActive_heavy;
 
-  const erosionCurve_before = [];
-  const erosionCurve_after  = [];
+  // BEFORE daily reach: all daily-active users who have ≥1 promo slot
+  // Light users: have few promo slots but >0, so all daily-active are reached
+  const dailyReachBefore = dailyActive_light + dailyActive_med + dailyActive_heavy;
 
-  for (let day = 1; day <= 30; day++) {
-    // BEFORE addressable: per-segment fraction still under monthly cap
-    const aL_b = addressableFracOnDay(day, effDailyBefore_light, effMonthlyCap_before, binge);
-    const aM_b = addressableFracOnDay(day, effDailyBefore_med,   effMonthlyCap_before, binge);
-    const aH_b = addressableFracOnDay(day, effDailyBefore_heavy, effMonthlyCap_before, binge);
-    const addr_before = (dailyActive_light * aL_b + dailyActive_med * aM_b + dailyActive_heavy * aH_b);
+  // AFTER daily reach: same — aggregate fcap ≥1 means all daily-active still see ≥1 promo
+  // (fcap of 15-20 >> 1, so no user who was reached before is un-reached after)
+  // The only edge case: if dfAfter were set to 0, reach would drop. For any dfAfter≥1, reach is stable.
+  const dailyReachAfter = dfAfter >= 1 ? dailyReachBefore : 0;
+  const dropDailyReach = (dailyReachBefore - dailyReachAfter) / dailyReachBefore;
 
-    // AFTER addressable
-    const aL_a = addressableFracOnDay(day, effDailyAfter_light, effMonthlyCap_after, binge);
-    const aM_a = addressableFracOnDay(day, effDailyAfter_med,   effMonthlyCap_after, binge);
-    const aH_a = addressableFracOnDay(day, effDailyAfter_heavy, effMonthlyCap_after, binge);
-    const addr_after  = (dailyActive_light * aL_a + dailyActive_med * aM_a + dailyActive_heavy * aH_a);
+  // MONTHLY reach = unique users reached at least once in a 30-day window.
+  // BEFORE: A user is reached monthly if they watch at least 1 day in the month.
+  //   Probability of watching at least 1 day in 30 = 1 - (1 - dailyActiveFrac)^30
+  const monthlyReachProb_light = 1 - Math.pow(1 - dailyActiveFrac_light, 30);
+  const monthlyReachProb_med   = 1 - Math.pow(1 - dailyActiveFrac_med,   30);
+  const monthlyReachProb_heavy = 1 - Math.pow(1 - dailyActiveFrac_heavy, 30);
 
-    erosionCurve_before.push(addr_before / totalDailyActive);
-    erosionCurve_after.push(addr_after   / totalDailyActive);
-  }
+  const monthlyReachBefore = Math.round(
+    nLight * monthlyReachProb_light +
+    nMed   * monthlyReachProb_med   +
+    nHeavy * monthlyReachProb_heavy
+  );
 
-  // Key summary stats from erosion
-  const addrDay1_before  = erosionCurve_before[0];
-  const addrDay1_after   = erosionCurve_after[0];
-  const addrDay15_before = erosionCurve_before[14];
-  const addrDay15_after  = erosionCurve_after[14];
-  const addrDay30_before = erosionCurve_before[29];
-  const addrDay30_after  = erosionCurve_after[29];
+  // AFTER monthly reach: monthly fcap introduces a risk of users being "exhausted" for the month.
+  // A user exhausts their monthly cap if: dailyImpsAfter × 30 > mfAfter
+  // i.e., if effDailyAfter × 30 > mfAfter → they hit the monthly cap before day 30
+  // Day they exhaust monthly cap = mfAfter / effDailyAfter
+  // Users who exhaust monthly cap early are still "reached" — they saw promos up to that day.
+  // Monthly reach is NOT reduced by monthly fcap — it's still about ≥1 impression in the month.
+  // However, if mfAfter = 0 (edge case), no reach. Otherwise all monthly-active users are reached.
+  const monthlyReachAfter = mfAfter >= 1 ? monthlyReachBefore : 0;
+  const dropMonthlyReach = (monthlyReachBefore - monthlyReachAfter) / monthlyReachBefore;
 
-  // Users lost from addressable pool by end of month (after vs before)
-  const addrLostByEOM = (addrDay30_before - addrDay30_after); // as fraction of daily active
-  const addrLostUsers = Math.round(addrLostByEOM * totalDailyActive);
-
-  // Day when addressable reach drops below 90% / 75% / 50% of day-1 (after)
-  function dayBelowThreshold(curve, threshold) {
-    for (let i = 0; i < curve.length; i++) {
-      if (curve[i] < curve[0] * threshold) return i + 1;
-    }
-    return '>30';
-  }
-  const dayBelow90_after = dayBelowThreshold(erosionCurve_after, 0.90);
-  const dayBelow75_after = dayBelowThreshold(erosionCurve_after, 0.75);
-
-  // Also keep per-creative reach for the table (simplified)
-  const creativesPerAdset = Math.ceil(campBefore / campAfter);
-  const cOverlap = Math.min(overlap, campBefore);
-
-  function pcrBefore(slots, camps, fc) {
-    if (slots <= 0 || camps <= 0) return 0;
-    return 1 - Math.exp(-Math.min(slots / camps, fc));
-  }
-  function pcrAfter(slots, nC, fc) {
-    if (slots <= 0 || nC <= 0) return 0;
-    const draws = Math.min(slots, fc);
-    if (nC === 1) return draws >= 1 ? 1 : 0;
-    return 1 - Math.pow((nC - 1) / nC, draws);
-  }
-
-  const pcrBefore_light = pcrBefore(effDailyBefore_light, cOverlap, dfBefore);
-  const pcrBefore_med   = pcrBefore(effDailyBefore_med,   cOverlap, dfBefore);
-  const pcrBefore_heavy = pcrBefore(effDailyBefore_heavy, cOverlap, dfBefore);
-  const pcrAfter_light  = pcrAfter(effDailyAfter_light, creativesPerAdset, dfAfter);
-  const pcrAfter_med    = pcrAfter(effDailyAfter_med,   creativesPerAdset, dfAfter);
-  const pcrAfter_heavy  = pcrAfter(effDailyAfter_heavy, creativesPerAdset, dfAfter);
+  // Day in month when power users exhaust monthly cap (after consolidation)
+  const dayExhaustMonthly_heavy = effDailyAfter_heavy > 0
+    ? Math.min(30, Math.ceil(mfAfter / effDailyAfter_heavy))
+    : 30;
+  const dayExhaustMonthly_med = effDailyAfter_med > 0
+    ? Math.min(30, Math.ceil(mfAfter / effDailyAfter_med))
+    : 30;
 
   // ── DROPS ──
-  const dropDailyImps   = (impsBefore_total - impsAfter_total) / impsBefore_total;
+  const dropDailyImps   = (impsBefore_total  - impsAfter_total)  / impsBefore_total;
   const dropMonthlyImps = (monthlyBefore_total - monthlyAfter_total) / monthlyBefore_total;
 
+  // Power user improvement
   const heavyBefore = effDailyBefore_heavy;
   const heavyAfter  = effDailyAfter_heavy;
-  const heavyImprovement = heavyBefore > 0 ? (heavyBefore - heavyAfter) / heavyBefore : 0;
+  const heavyImprovement = (heavyBefore - heavyAfter) / heavyBefore;
 
-  // fcap sweep (impressions)
+  // ── fcap sweep data (for chart) ──
   const fcapRange = [];
   for (let f = 1; f <= 60; f++) {
     const a_l = Math.min(effDailyBefore_light, f);
     const a_m = Math.min(effDailyBefore_med,   f);
-    const a_h = Math.min(effDailyBefore_heavy, f);
+    const a_h = Math.min(effDailyBefore_heavy,  f);
     const total = nLight*a_l + nMed*a_m + nHeavy*a_h;
     fcapRange.push({ f, pct: total / impsBefore_total });
   }
 
+  // ── camp sweep data ──
+  const campRange = [];
+  for (let c = 1; c <= 20; c++) {
+    // with c campaigns, scale proportionally from 1 campaign effectiveness to current
+    // More campaigns = more creative diversity but same aggregate cap
+    // Impact on impressions: same (fcap is what limits), but reach per creative drops
+    const reachPerCreative = 1 - Math.pow(1 - 1/c, c * dfAfter / (dfAfter));
+    // Simply: reach per creative ≈ 1/c of reach if uniform rotation
+    campRange.push({ c, reachPct: 1/c });
+  }
+
   renderResults({
-    dau, nLight, nMed, nHeavy, totalDailyActive,
-    // impressions
-    impsBefore_total, impsAfter_total, dropDailyImps,
-    monthlyBefore_total, monthlyAfter_total, dropMonthlyImps,
-    // power user
+    dau, nLight, nMed, nHeavy,
+    impsBefore_total, impsAfter_total,
+    monthlyBefore_total, monthlyAfter_total,
+    dailyReachBefore, dailyReachAfter, dropDailyReach,
+    monthlyReachBefore, monthlyReachAfter, dropMonthlyReach,
+    dropDailyImps, dropMonthlyImps,
     heavyBefore, heavyAfter, heavyImprovement,
-    // addressable reach erosion
-    erosionCurve_before, erosionCurve_after,
-    addrDay1_before, addrDay1_after,
-    addrDay15_before, addrDay15_after,
-    addrDay30_before, addrDay30_after,
-    addrLostUsers, addrLostByEOM,
-    dayBelow90_after, dayBelow75_after,
-    // per-creative reach (for table)
-    pcrBefore_light, pcrBefore_med, pcrBefore_heavy,
-    pcrAfter_light,  pcrAfter_med,  pcrAfter_heavy,
-    creativesPerAdset,
-    // segment imps
     effDailyBefore_light, effDailyBefore_med, effDailyBefore_heavy,
-    effDailyAfter_light,  effDailyAfter_med,  effDailyAfter_heavy,
-    // charts
-    fcapRange,
-    dfAfter, dfBefore, campBefore, campAfter,
+    effDailyAfter_light, effDailyAfter_med, effDailyAfter_heavy,
+    dayExhaustMonthly_heavy, dayExhaustMonthly_med,
+    fcapRange, campAfter,
+    dfAfter, campBefore, campRange,
     mfAfter, mfBefore, effMonthlyBefore,
-    dailyActiveFrac_light, dailyActiveFrac_med, dailyActiveFrac_heavy,
-    overlap, binge
+    dailyActiveFrac_light, dailyActiveFrac_med, dailyActiveFrac_heavy
   });
 }
 
@@ -829,220 +713,147 @@ function renderResults(d) {
 
   const panel = document.getElementById('main-panel');
   panel.innerHTML = `
-  const puPct   = +document.getElementById('s-pu').value;
-  const lightFrac = 1 - puPct/100 - (1-puPct/100)*0.35;
-  const medFrac   = (1-puPct/100)*0.35;
-  const fmtFrac = f => (f*100).toFixed(1) + '%';
-
-  panel.innerHTML = `
-    <!-- ── IMPRESSIONS ── -->
-    <div class="section-divider">Impressions</div>
+    <!-- Headline metrics — Impressions row -->
     <div class="headline">
       <div class="metric-card blue">
         <div class="card-label">Daily Imps Drop</div>
-        <div class="card-val">${fmtFrac(d.dropDailyImps)}</div>
-        <div class="card-sub">${fmtM(d.impsAfter_total)} from ${fmtM(d.impsBefore_total)}/day</div>
+        <div class="card-val">${fmtPct(d.dropDailyImps)}</div>
+        <div class="card-sub">${fmtM(d.impsAfter_total)} from ${fmtM(d.impsBefore_total)}</div>
       </div>
       <div class="metric-card red">
         <div class="card-label">Monthly Imps Drop</div>
-        <div class="card-val">${fmtFrac(d.dropMonthlyImps)}</div>
-        <div class="card-sub">${fmtM(d.monthlyAfter_total)} from ${fmtM(d.monthlyBefore_total)}/month</div>
+        <div class="card-val">${fmtPct(d.dropMonthlyImps)}</div>
+        <div class="card-sub">${fmtM(d.monthlyAfter_total)} from ${fmtM(d.monthlyBefore_total)}</div>
       </div>
       <div class="metric-card warn">
         <div class="card-label">Power User Relief</div>
-        <div class="card-val">${fmtFrac(d.heavyImprovement)}</div>
+        <div class="card-val">${fmtPct(d.heavyImprovement)}</div>
         <div class="card-sub">${fmtInt(d.heavyAfter)} vs ${fmtInt(d.heavyBefore)} promos/day</div>
       </div>
     </div>
 
-    <!-- ── ADDRESSABLE REACH ── -->
-    <div class="section-divider">Addressable Reach — users not yet exhausted this month</div>
-    <div class="reach-note">
-      <strong>Addressable reach erodes through the month.</strong> Once a user's cumulative monthly impressions hit the monthly fcap, they drop out of the addressable pool entirely — you can no longer serve them promos for the rest of that month. The chart below shows this erosion day by day. The steeper the drop vs the "before" baseline, the more users you're locking out prematurely.
-    </div>
-    <div class="headline-creative">
-      <div class="metric-card ${d.addrDay1_after > 0.97 ? 'green' : 'warn'}">
-        <div class="card-label">Addressable Reach — Day 1</div>
-        <div class="card-val">${fmtFrac(d.addrDay1_after)}</div>
-        <div class="card-sub">Before: ${fmtFrac(d.addrDay1_before)} · ${fmtM(d.totalDailyActive * d.addrDay1_after)} users targetable</div>
+    <!-- Headline metrics — Reach row -->
+    <div class="headline-reach">
+      <div class="metric-card green">
+        <div class="card-label">Daily Reach Drop</div>
+        <div class="card-val">${d.dropDailyReach < 0.001 ? '~0%' : fmtPct(d.dropDailyReach)}</div>
+        <div class="card-sub">${fmtM(d.dailyReachAfter)} of ${fmtM(d.dailyReachBefore)} daily-active users still reached</div>
       </div>
-      <div class="metric-card ${d.addrDay15_after > 0.85 ? 'green' : d.addrDay15_after > 0.65 ? 'warn' : 'red'}">
-        <div class="card-label">Addressable Reach — Day 15</div>
-        <div class="card-val">${fmtFrac(d.addrDay15_after)}</div>
-        <div class="card-sub">Before: ${fmtFrac(d.addrDay15_before)} · ${fmtM(d.totalDailyActive * d.addrDay15_after)} users targetable</div>
+      <div class="metric-card green">
+        <div class="card-label">Monthly Reach Drop</div>
+        <div class="card-val">${d.dropMonthlyReach < 0.001 ? '~0%' : fmtPct(d.dropMonthlyReach)}</div>
+        <div class="card-sub">${fmtM(d.monthlyReachAfter)} of ${fmtM(d.monthlyReachBefore)} monthly-active users still reached</div>
       </div>
-      <div class="metric-card ${d.addrDay30_after > 0.70 ? 'green' : d.addrDay30_after > 0.45 ? 'warn' : 'red'}">
-        <div class="card-label">Addressable Reach — Day 30 (EOM)</div>
-        <div class="card-val">${fmtFrac(d.addrDay30_after)}</div>
-        <div class="card-sub">Before: ${fmtFrac(d.addrDay30_before)} · ${fmtInt(d.addrLostUsers)} users locked out vs before</div>
+      <div class="metric-card ${d.dayExhaustMonthly_heavy >= 28 ? 'green' : d.dayExhaustMonthly_heavy >= 15 ? 'warn' : 'red'}">
+        <div class="card-label">Power User Monthly Cap Exhausted</div>
+        <div class="card-val">Day ${fmtInt(d.dayExhaustMonthly_heavy)}</div>
+        <div class="card-sub">Power users hit monthly fcap on day ${fmtInt(d.dayExhaustMonthly_heavy)} of 30 · Medium users: day ${fmtInt(d.dayExhaustMonthly_med)}</div>
       </div>
     </div>
 
-    <!-- ── CHARTS ── -->
+    <!-- Charts -->
     <div class="charts-row">
       <div class="chart-box">
-        <div class="chart-title">Addressable Reach Erosion — % of Daily Active Pool Remaining</div>
-        <canvas id="erosion-chart" height="200"></canvas>
+        <div class="chart-title">Daily Impressions Retained vs Aggregate FCap</div>
+        <canvas id="fcap-chart" height="180"></canvas>
       </div>
       <div class="chart-box">
-        <div class="chart-title">Daily Impressions Before vs After — by Segment</div>
-        <canvas id="split-chart" height="200"></canvas>
+        <div class="chart-title">Impressions Split — Before vs After</div>
+        <canvas id="split-chart" height="180"></canvas>
       </div>
     </div>
 
-    <!-- ── PER-CREATIVE REACH TABLE ── -->
+    <!-- Table -->
     <div class="table-box">
-      <div class="chart-title">Per-Creative Reach Probability by Segment (Daily) — for Growth team</div>
+      <div class="chart-title">Breakdown by User Segment</div>
       <table>
         <thead>
           <tr>
             <th>Segment</th>
-            <th>Promo Imps/Day Before</th>
-            <th>Promo Imps/Day After</th>
-            <th>P(see specific show) Before</th>
-            <th>P(see specific show) After</th>
-            <th>Per-Creative Reach Drop</th>
+            <th>Users</th>
+            <th>Promo Slots/Day (Before)</th>
+            <th>Promo Slots/Day (After)</th>
+            <th>Daily Imps Before</th>
+            <th>Daily Imps After</th>
+            <th>Drop</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td class="td-label">🟦 Light (${fmtFrac(lightFrac)})</td>
+            <td class="td-label">🟦 Light Users</td>
+            <td class="td-num">${fmtM(d.nLight)}</td>
             <td class="td-num">${d.effDailyBefore_light}</td>
             <td class="td-num">${d.effDailyAfter_light}</td>
-            <td class="td-num">${fmtFrac(d.pcrBefore_light)}</td>
-            <td class="td-num">${fmtFrac(d.pcrAfter_light)}</td>
-            <td class="td-drop ${d.pcrBefore_light <= d.pcrAfter_light ? 'good' : ''}">${fmtFrac(Math.max(0,(d.pcrBefore_light - d.pcrAfter_light)/Math.max(d.pcrBefore_light,0.0001)))}</td>
+            <td class="td-num">${fmtM(d.nLight * d.effDailyBefore_light)}</td>
+            <td class="td-num">${fmtM(d.nLight * d.effDailyAfter_light)}</td>
+            <td class="td-drop ${d.effDailyBefore_light === d.effDailyAfter_light ? 'good' : ''}">
+              ${d.effDailyBefore_light === d.effDailyAfter_light ? '0.0%' : fmtPct((d.effDailyBefore_light - d.effDailyAfter_light)/d.effDailyBefore_light)}
+            </td>
           </tr>
           <tr>
-            <td class="td-label">🟧 Medium (${fmtFrac(medFrac)})</td>
+            <td class="td-label">🟧 Medium Users</td>
+            <td class="td-num">${fmtM(d.nMed)}</td>
             <td class="td-num">${d.effDailyBefore_med}</td>
             <td class="td-num">${d.effDailyAfter_med}</td>
-            <td class="td-num">${fmtFrac(d.pcrBefore_med)}</td>
-            <td class="td-num">${fmtFrac(d.pcrAfter_med)}</td>
-            <td class="td-drop ${d.pcrBefore_med <= d.pcrAfter_med ? 'good' : ''}">${fmtFrac(Math.max(0,(d.pcrBefore_med - d.pcrAfter_med)/Math.max(d.pcrBefore_med,0.0001)))}</td>
+            <td class="td-num">${fmtM(d.nMed * d.effDailyBefore_med)}</td>
+            <td class="td-num">${fmtM(d.nMed * d.effDailyAfter_med)}</td>
+            <td class="td-drop ${d.effDailyBefore_med === d.effDailyAfter_med ? 'good' : ''}">
+              ${d.effDailyBefore_med === d.effDailyAfter_med ? '0.0%' : fmtPct((d.effDailyBefore_med - d.effDailyAfter_med)/d.effDailyBefore_med)}
+            </td>
           </tr>
           <tr>
-            <td class="td-label">🟥 Power (${puPct}%)</td>
+            <td class="td-label">🟥 Power Users</td>
+            <td class="td-num">${fmtM(d.nHeavy)}</td>
             <td class="td-num">${d.effDailyBefore_heavy}</td>
             <td class="td-num">${d.effDailyAfter_heavy}</td>
-            <td class="td-num">${fmtFrac(d.pcrBefore_heavy)}</td>
-            <td class="td-num">${fmtFrac(d.pcrAfter_heavy)}</td>
-            <td class="td-drop">${fmtFrac(Math.max(0,(d.pcrBefore_heavy - d.pcrAfter_heavy)/Math.max(d.pcrBefore_heavy,0.0001)))}</td>
+            <td class="td-num">${fmtM(d.nHeavy * d.effDailyBefore_heavy)}</td>
+            <td class="td-num">${fmtM(d.nHeavy * d.effDailyAfter_heavy)}</td>
+            <td class="td-drop">${fmtPct((d.effDailyBefore_heavy - d.effDailyAfter_heavy)/d.effDailyBefore_heavy)}</td>
+          </tr>
+          <tr style="border-top: 2px solid var(--border2);">
+            <td class="td-label" style="color:var(--accent); font-weight:600">TOTAL</td>
+            <td class="td-num">${fmtM(d.dau)}</td>
+            <td class="td-num">—</td>
+            <td class="td-num">—</td>
+            <td class="td-num" style="color:var(--text)">${fmtM(d.impsBefore_total)}</td>
+            <td class="td-num" style="color:var(--text)">${fmtM(d.impsAfter_total)}</td>
+            <td class="td-drop">${fmtPct(d.dropDailyImps)}</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- ── ASSUMPTIONS ── -->
+    <!-- Assumptions -->
     <div class="assumptions">
       <strong>Model Assumptions</strong>
       <ul>
-        <li><strong>Addressable reach</strong> = users who have not yet consumed their monthly fcap. Modelled as a daily erosion curve using a CLT approximation: P(user exhausted by day D) = Φ((μD − cap) / (σ√D)), where μ = daily impressions and σ = μ × (binge − 1).</li>
-        <li>Binge factor ${d.binge.toFixed(1)}× controls daily variance. At 1.0 all users consume uniformly (deterministic exhaustion). Higher values mean some users front-load watch time and exhaust their cap earlier in the month.</li>
-        <li>Before monthly cap per user: ${fmtInt(d.mfBefore)} × ${Math.min(d.overlap, d.campBefore)} eligible campaigns = <strong>${fmtInt(d.mfBefore * Math.min(d.overlap, d.campBefore))}</strong> impressions/month — effectively never exhausted for most users.</li>
-        <li>After monthly cap: <strong>${fmtInt(d.mfAfter)}</strong> impressions/month aggregate. At ${fmtInt(d.effDailyAfter_heavy)} impressions/day, power users exhaust this in ~${Math.ceil(d.mfAfter / Math.max(d.effDailyAfter_heavy, 1))} days (uniform), or sooner with binge variance.</li>
-        <li>Per-creative reach (table above) uses Poisson/coupon-collector approximation for before, and round-robin binomial for after across ${fmtInt(d.creativesPerAdset)} creatives per adset.</li>
-        <li>Model does not account for pacing algorithms, P5/P9/P10 priority rules, or non-uniform creative weighting.</li>
+        <li>User segments: Light (${fmtPct(1 - (+document.getElementById('s-pu').value/100) - ((1-(+document.getElementById('s-pu').value/100))*0.35))}), Medium (${fmtPct((1-(+document.getElementById('s-pu').value/100))*0.35)}), Power (${document.getElementById('s-pu').value}%) — power-law distributed</li>
+        <li>Light users: ~25% of their ad slots are promo (client campaigns mostly fill). Medium: ~45%. Power users: all slots post-client-exhaust are promo.</li>
+        <li>Before: each user is eligible for <strong>${document.getElementById('s-overlap').value}</strong> of ${document.getElementById('s-camp-before').value} campaigns → effective daily cap = ${Math.min(+document.getElementById('s-overlap').value, +document.getElementById('s-camp-before').value) * +document.getElementById('s-df-before').value} impressions before slot constraint</li>
+        <li>After: single aggregate daily fcap of <strong>${document.getElementById('s-df-after').value}</strong> applies across all ${document.getElementById('s-camp-after').value} campaigns</li>
+        <li>Reach (unique users seeing ≥1 promo) is computed separately at <strong>daily</strong> and <strong>monthly</strong> horizons. Daily reach assumes ${Math.round(d.dailyActiveFrac_light*100)}% of light / ${Math.round(d.dailyActiveFrac_med*100)}% of medium / ${Math.round(d.dailyActiveFrac_heavy*100)}% of power users watch on any given day.</li>
+        <li>Monthly reach = probability of watching ≥1 day in 30, derived from daily active fractions. Consolidation does not reduce reach as long as aggregate fcap ≥1.</li>
+        <li>The "Day monthly cap exhausted" card shows when power/medium users hit the monthly fcap. After that day, those users see 0 promos for the rest of the month — a reach risk only if they are heavy daily viewers and the monthly cap is set too low relative to daily × 30.</li>
+        <li>This model does not account for pacing algorithms, priority rules (P5/P9/P10), or creative rotation weighting.</li>
       </ul>
     </div>
   `;
 
-  // ── Chart 1: Addressable reach erosion ──
-  const ctx1 = document.getElementById('erosion-chart').getContext('2d');
-  drawErosionChart(ctx1, d.erosionCurve_before, d.erosionCurve_after);
+  // ── Chart 1: FCap sweep ──
+  const ctx1 = document.getElementById('fcap-chart').getContext('2d');
+  drawLineChart(ctx1, d.fcapRange.map(x => x.f), d.fcapRange.map(x => x.pct * 100), {
+    label: '% of Before Impressions Retained',
+    color: '#4f9eff',
+    markX: d.dfAfter
+  });
 
-  // ── Chart 2: Impressions by segment ──
+  // ── Chart 2: Before vs After split bar ──
   const ctx2 = document.getElementById('split-chart').getContext('2d');
   drawGroupedBar(ctx2,
     ['Light', 'Medium', 'Power'],
     [d.nLight * d.effDailyBefore_light / 1e6, d.nMed * d.effDailyBefore_med / 1e6, d.nHeavy * d.effDailyBefore_heavy / 1e6],
-    [d.nLight * d.effDailyAfter_light  / 1e6, d.nMed * d.effDailyAfter_med  / 1e6, d.nHeavy * d.effDailyAfter_heavy  / 1e6]
+    [d.nLight * d.effDailyAfter_light / 1e6,  d.nMed * d.effDailyAfter_med / 1e6,  d.nHeavy * d.effDailyAfter_heavy / 1e6]
   );
-}
-
-// ── Addressable Reach Erosion Chart ──
-function drawErosionChart(ctx, curveBefore, curveAfter) {
-  const W = ctx.canvas.parentElement.clientWidth - 40;
-  const H = 200;
-  ctx.canvas.width  = W;
-  ctx.canvas.height = H;
-  const pad = { t: 14, r: 14, b: 32, l: 52 };
-  const pw = W - pad.l - pad.r;
-  const ph = H - pad.t - pad.b;
-
-  ctx.clearRect(0, 0, W, H);
-
-  // grid
-  ctx.strokeStyle = '#272c3d';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = pad.t + ph * (1 - i/4);
-    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
-    ctx.fillStyle = '#6b7694';
-    ctx.font = '10px IBM Plex Mono';
-    ctx.textAlign = 'right';
-    ctx.fillText((i * 25) + '%', pad.l - 6, y + 4);
-  }
-
-  // x-axis day markers
-  ctx.fillStyle = '#6b7694';
-  ctx.font = '10px IBM Plex Mono';
-  ctx.textAlign = 'center';
-  [1, 5, 10, 15, 20, 25, 30].forEach(day => {
-    const x = pad.l + ((day - 1) / 29) * pw;
-    ctx.fillText(day, x, pad.t + ph + 14);
-  });
-  ctx.fillText('Day of Month', pad.l + pw/2, H - 2);
-
-  function drawCurve(curve, color, dash) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.setLineDash(dash || []);
-    ctx.beginPath();
-    curve.forEach((v, i) => {
-      const x = pad.l + (i / 29) * pw;
-      const y = pad.t + ph * (1 - v);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // Fill area between curves (lost addressable users)
-  ctx.fillStyle = 'rgba(255,107,79,0.10)';
-  ctx.beginPath();
-  curveBefore.forEach((v, i) => {
-    const x = pad.l + (i / 29) * pw;
-    const y = pad.t + ph * (1 - v);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  for (let i = 29; i >= 0; i--) {
-    const x = pad.l + (i / 29) * pw;
-    const y = pad.t + ph * (1 - curveAfter[i]);
-    ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.fill();
-
-  drawCurve(curveBefore, '#4f9eff', [5, 3]);  // before = blue dashed
-  drawCurve(curveAfter,  '#4fffb0');           // after = green solid
-
-  // Legend
-  ctx.setLineDash([5, 3]);
-  ctx.strokeStyle = '#4f9eff'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(pad.l, H - 6); ctx.lineTo(pad.l + 22, H - 6); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = '#6b7694'; ctx.font = '10px IBM Plex Mono'; ctx.textAlign = 'left';
-  ctx.fillText('Before', pad.l + 26, H - 2);
-
-  ctx.strokeStyle = '#4fffb0'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(pad.l + 80, H - 6); ctx.lineTo(pad.l + 102, H - 6); ctx.stroke();
-  ctx.fillText('After', pad.l + 106, H - 2);
-
-  ctx.fillStyle = 'rgba(255,107,79,0.4)';
-  ctx.fillRect(pad.l + 150, H - 10, 12, 8);
-  ctx.fillStyle = '#6b7694';
-  ctx.fillText('Lost addressable pool', pad.l + 166, H - 2);
 }
 
 // ── Mini chart renderers (vanilla canvas) ──
@@ -1123,7 +934,7 @@ function drawLineChart(ctx, xs, ys, opts) {
   });
   ctx.fillStyle = '#6b7694';
   ctx.textAlign = 'center';
-  ctx.fillText('Aggregate Daily FCap → Per-Creative Reach %', pad.l + pw/2, H - 2);
+  ctx.fillText('Aggregate Daily FCap', pad.l + pw/2, H - 2);
 }
 
 function drawGroupedBar(ctx, labels, before, after) {
