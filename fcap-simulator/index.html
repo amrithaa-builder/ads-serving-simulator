@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Promo FCap Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --surface: #151820;
+    --surface2: #1c2030;
+    --border: #272c3d;
+    --border2: #323848;
+    --text: #e2e6f0;
+    --muted: #6b7694;
+    --accent: #4f9eff;
+    --accent2: #ff6b4f;
+    --accent3: #4fffb0;
+    --warn: #ffb84f;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    background: var(--surface);
+  }
+  header h1 {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+  }
+  header span {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    height: calc(100vh - 57px);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    background: var(--surface);
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .field {
+    margin-bottom: 18px;
+  }
+
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 7px;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .field label .val {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(79,158,255,0.5);
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 14px rgba(79,158,255,0.8);
+  }
+
+  .hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 5px;
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  /* distribution viz */
+  .dist-preview {
+    height: 52px;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 8px 4px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .dist-bar {
+    flex: 1;
+    border-radius: 1px 1px 0 0;
+    min-height: 2px;
+    transition: height 0.3s;
+  }
+
+  /* run button */
+  .run-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 12px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s, box-shadow 0.15s;
+    text-transform: uppercase;
+  }
+  .run-btn:hover {
+    background: #6cb5ff;
+    box-shadow: 0 0 20px rgba(79,158,255,0.4);
+  }
+
+  /* ── Main panel ── */
+  .main {
+    overflow-y: auto;
+    padding: 28px 32px;
+    background: var(--bg);
+  }
+
+  /* headline metrics */
+  .headline {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .headline-reach {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .headline-creative {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .metric-card.blue::before { background: var(--accent); }
+  .metric-card.red::before { background: var(--accent2); }
+  .metric-card.green::before { background: var(--accent3); }
+  .metric-card.warn::before { background: var(--warn); }
+
+  .metric-card .card-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .metric-card .card-val {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .metric-card.blue .card-val { color: var(--accent); }
+  .metric-card.red .card-val { color: var(--accent2); }
+  .metric-card.green .card-val { color: var(--accent3); }
+  .metric-card.warn .card-val { color: var(--warn); }
+
+  .metric-card .card-sub {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* section divider */
+  .section-divider {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .reach-note {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent3);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .reach-note strong { color: var(--accent3); }
+
+  /* charts row */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .chart-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+  }
+  .chart-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  canvas { display: block; width: 100% !important; }
+
+  /* user breakdown table */
+  .table-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .td-label { color: var(--text); font-family: var(--sans); font-weight: 500; }
+  .td-num { color: var(--muted); }
+  .td-drop { color: var(--accent2); font-weight: 600; }
+  .td-drop.good { color: var(--accent3); }
+
+  /* assumptions box */
+  .assumptions {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--warn);
+    border-radius: 6px;
+    padding: 16px 20px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--muted);
+  }
+  .assumptions strong {
+    color: var(--warn);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .assumptions ul { list-style: none; padding: 0; }
+  .assumptions li::before { content: '→ '; color: var(--warn); }
+
+  /* empty state */
+  .empty {
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .empty .icon { font-size: 36px; opacity: 0.3; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PROMO FCAP SIMULATOR</h1>
+  <span>OTT Ad Server · Campaign Consolidation Impact Model</span>
+</header>
+
+<div class="layout">
+
+  <!-- ════════════ SIDEBAR ════════════ -->
+  <aside class="sidebar">
+
+    <!-- USER POOL -->
+    <div>
+      <div class="section-label">User Pool</div>
+
+      <div class="field">
+        <label>Total DAU <span class="val" id="v-dau">10,000,000</span></label>
+        <input type="range" id="s-dau" min="100000" max="100000000" step="100000" value="10000000">
+        <p class="hint">Daily Active Users eligible for promo ads</p>
+      </div>
+
+      <div class="field">
+        <label>Power User % <span class="val" id="v-pu">15%</span></label>
+        <input type="range" id="s-pu" min="1" max="40" step="1" value="15">
+        <p class="hint">Users who exhaust client campaigns daily</p>
+      </div>
+
+      <div class="field">
+        <label>Avg ad slots/day — light user <span class="val" id="v-light">4</span></label>
+        <input type="range" id="s-light" min="1" max="20" step="1" value="4">
+      </div>
+      <div class="field">
+        <label>Avg ad slots/day — medium user <span class="val" id="v-med">12</span></label>
+        <input type="range" id="s-med" min="5" max="40" step="1" value="12">
+      </div>
+      <div class="field">
+        <label>Avg ad slots/day — power user <span class="val" id="v-heavy">45</span></label>
+        <input type="range" id="s-heavy" min="20" max="120" step="1" value="45">
+        <p class="hint">Power users generate this many promo slots after client campaigns are exhausted</p>
+      </div>
+
+      <!-- Distribution preview -->
+      <div class="dist-preview" id="dist-preview"></div>
+      <p class="hint" style="margin-top:6px">Power-law distribution across user tiers (light / medium / power)</p>
+    </div>
+
+    <!-- BEFORE -->
+    <div>
+      <div class="section-label">Before — Current Setup</div>
+
+      <div class="field">
+        <label>Number of promo campaigns <span class="val" id="v-camp-before">100</span></label>
+        <input type="range" id="s-camp-before" min="10" max="300" step="5" value="100">
+      </div>
+      <div class="field">
+        <label>Daily fcap per user per campaign <span class="val" id="v-df-before">2</span></label>
+        <input type="range" id="s-df-before" min="1" max="10" step="1" value="2">
+      </div>
+      <div class="field">
+        <label>Monthly fcap per user per campaign <span class="val" id="v-mf-before">5</span></label>
+        <input type="range" id="s-mf-before" min="1" max="30" step="1" value="5">
+      </div>
+      <div class="field">
+        <label>Avg campaigns targeting a user <span class="val" id="v-overlap">40</span></label>
+        <input type="range" id="s-overlap" min="5" max="200" step="5" value="40">
+        <p class="hint">Out of 100 campaigns, how many is a typical user actually targeted by?</p>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div>
+      <div class="section-label">After — Consolidated Setup</div>
+
+      <div class="field">
+        <label>Number of promo campaigns <span class="val" id="v-camp-after">4</span></label>
+        <input type="range" id="s-camp-after" min="1" max="20" step="1" value="4">
+      </div>
+      <div class="field">
+        <label>Aggregate daily fcap per user <span class="val" id="v-df-after">15</span></label>
+        <input type="range" id="s-df-after" min="1" max="60" step="1" value="15">
+      </div>
+      <div class="field">
+        <label>Aggregate monthly fcap per user <span class="val" id="v-mf-after">150</span></label>
+        <input type="range" id="s-mf-after" min="10" max="600" step="5" value="150">
+      </div>
+      <div class="field">
+        <label>Binge factor (daily watch variance) <span class="val" id="v-binge">1.5</span>×</label>
+        <input type="range" id="s-binge" min="1.0" max="4.0" step="0.1" value="1.5">
+        <p class="hint">How unevenly users consume across days. 1.0 = perfectly uniform. Higher = some users binge early and exhaust their monthly cap sooner.</p>
+      </div>
+    </div>
+
+    <button class="run-btn" onclick="runSim()">▶ RUN SIMULATION</button>
+
+  </aside>
+
+  <!-- ════════════ MAIN ════════════ -->
+  <main class="main" id="main-panel">
+    <div class="empty">
+      <div class="icon">◈</div>
+      <div>Configure inputs and run simulation</div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// ── Slider sync ──
+function bindSlider(id, valId, fmt) {
+  const s = document.getElementById(id);
+  const v = document.getElementById(valId);
+  const update = () => { v.textContent = fmt(+s.value); drawDist(); };
+  s.addEventListener('input', update);
+  update();
+}
+
+const fmtNum = n => n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(0)+'K' : n;
+const fmtPct = n => n + '%';
+const fmtInt = n => n.toLocaleString();
+
+bindSlider('s-dau',         'v-dau',         fmtNum);
+bindSlider('s-pu',          'v-pu',          fmtPct);
+bindSlider('s-light',       'v-light',       fmtInt);
+bindSlider('s-med',         'v-med',         fmtInt);
+bindSlider('s-heavy',       'v-heavy',       fmtInt);
+bindSlider('s-camp-before', 'v-camp-before', fmtInt);
+bindSlider('s-df-before',   'v-df-before',   fmtInt);
+bindSlider('s-mf-before',   'v-mf-before',   fmtInt);
+bindSlider('s-overlap',     'v-overlap',     fmtInt);
+bindSlider('s-camp-after',  'v-camp-after',  fmtInt);
+bindSlider('s-df-after',    'v-df-after',    fmtInt);
+bindSlider('s-mf-after',    'v-mf-after',    fmtInt);
+bindSlider('s-binge',       'v-binge',       n => n.toFixed(1));
+
+// ── Distribution preview ──
+function drawDist() {
+  const puPct = +document.getElementById('s-pu').value / 100;
+  const medPct = (1 - puPct) * 0.35;
+  const lightPct = 1 - puPct - medPct;
+
+  const BARS = 30;
+  const container = document.getElementById('dist-preview');
+  container.innerHTML = '';
+
+  for (let i = 0; i < BARS; i++) {
+    const t = i / (BARS - 1);
+    // power-law decay from left (light) to right (power)
+    let h;
+    if (i < BARS * lightPct) {
+      const localT = i / (BARS * lightPct);
+      h = 0.9 * Math.exp(-localT * 2);
+    } else if (i < BARS * (lightPct + medPct)) {
+      const localT = (i - BARS * lightPct) / (BARS * medPct);
+      h = 0.15 + 0.1 * (1 - localT);
+    } else {
+      const localT = (i - BARS * (lightPct + medPct)) / (BARS * puPct);
+      h = 0.08 + 0.07 * (1 - localT);
+    }
+
+    const bar = document.createElement('div');
+    bar.className = 'dist-bar';
+    const pct = Math.max(4, Math.round(h * 100));
+    bar.style.height = pct + '%';
+    const hue = i < BARS * lightPct ? '#4f9eff' :
+                i < BARS * (lightPct + medPct) ? '#ffb84f' : '#ff6b4f';
+    bar.style.background = hue;
+    bar.style.opacity = '0.7';
+    container.appendChild(bar);
+  }
+}
+drawDist();
+
+// ══════════════════════════════════
+//   CORE SIMULATION
+// ══════════════════════════════════
+function runSim() {
+  const dau          = +document.getElementById('s-dau').value;
+  const puPct        = +document.getElementById('s-pu').value / 100;
+  const slotsLight   = +document.getElementById('s-light').value;
+  const slotsMed     = +document.getElementById('s-med').value;
+  const slotsHeavy   = +document.getElementById('s-heavy').value;
+  const campBefore   = +document.getElementById('s-camp-before').value;
+  const dfBefore     = +document.getElementById('s-df-before').value;
+  const mfBefore     = +document.getElementById('s-mf-before').value;
+  const overlap      = +document.getElementById('s-overlap').value;
+  const campAfter    = +document.getElementById('s-camp-after').value;
+  const dfAfter      = +document.getElementById('s-df-after').value;
+  const mfAfter      = +document.getElementById('s-mf-after').value;
+  const binge        = +document.getElementById('s-binge').value;
+
+  // User segments
+  const medPct   = (1 - puPct) * 0.35;
+  const lightPct = 1 - puPct - medPct;
+
+  const nLight = Math.round(dau * lightPct);
+  const nMed   = Math.round(dau * medPct);
+  const nHeavy = Math.round(dau * puPct);
+
+  // ── BEFORE ──
+  // Effective daily fcap before = min(slots available, fcap × overlap)
+  // For light/med users, client campaigns don't dry up much — 
+  //   promo slots ≈ a small fraction of their total slots
+  // For power users, promo slots = slotsHeavy (already post-client-exhaust)
+
+  // Light users: see few promos, constrained by available promo slots (assume ~30% of light slots are promo)
+  const promoSlotsFractionLight = 0.25;
+  const promoSlotsFractionMed   = 0.45;
+
+  const effDailyBefore_light = Math.min(
+    Math.floor(slotsLight * promoSlotsFractionLight),
+    dfBefore * Math.min(overlap, campBefore)
+  );
+  const effDailyBefore_med = Math.min(
+    Math.floor(slotsMed * promoSlotsFractionMed),
+    dfBefore * Math.min(overlap, campBefore)
+  );
+  const effDailyBefore_heavy = Math.min(
+    slotsHeavy,
+    dfBefore * Math.min(overlap, campBefore)
+  );
+
+  // Reach before: all users who see at least 1 promo = basically all, since no aggregate cap
+  const reachBefore = dau; // conservative: 100% eligible users see at least 1 promo
+
+  const impsBefore_light = nLight * effDailyBefore_light;
+  const impsBefore_med   = nMed   * effDailyBefore_med;
+  const impsBefore_heavy = nHeavy * effDailyBefore_heavy;
+  const impsBefore_total = impsBefore_light + impsBefore_med + impsBefore_heavy;
+
+  // Monthly impressions: daily × 30, but bounded by monthly fcap
+  // Monthly fcap per campaign × overlap campaigns
+  const effMonthlyBefore = mfBefore * Math.min(overlap, campBefore);
+  const monthlyBefore_light = nLight * Math.min(effDailyBefore_light * 30, effMonthlyBefore);
+  const monthlyBefore_med   = nMed   * Math.min(effDailyBefore_med   * 30, effMonthlyBefore);
+  const monthlyBefore_heavy = nHeavy * Math.min(effDailyBefore_heavy * 30, effMonthlyBefore);
+  const monthlyBefore_total = monthlyBefore_light + monthlyBefore_med + monthlyBefore_heavy;
+
+  // ── AFTER ──
+  // After consolidation: aggregate fcap = dfAfter per user per day (across all campaigns)
+  // Slots available still same, but now capped at dfAfter regardless
+  const effDailyAfter_light = Math.min(effDailyBefore_light, dfAfter);
+  const effDailyAfter_med   = Math.min(effDailyBefore_med,   dfAfter);
+  const effDailyAfter_heavy = Math.min(effDailyBefore_heavy, dfAfter);
+
+  const impsAfter_light = nLight * effDailyAfter_light;
+  const impsAfter_med   = nMed   * effDailyAfter_med;
+  const impsAfter_heavy = nHeavy * effDailyAfter_heavy;
+  const impsAfter_total = impsAfter_light + impsAfter_med + impsAfter_heavy;
+
+  // Reach after: users who would be capped out (i.e. had >0 promo slots) — same as before
+  // Reach doesn't drop much since light/med users were already under the new fcap
+  // Only power users who hit the cap might see reduced reach if fcap = 0 (won't happen here)
+  const reachAfter = dau; // reach stays 100% — fcap reduction doesn't remove users from eligibility
+
+  // Monthly after: daily × 30 bounded by monthly fcap
+  const monthlyAfter_light = nLight * Math.min(effDailyAfter_light * 30, mfAfter);
+  const monthlyAfter_med   = nMed   * Math.min(effDailyAfter_med   * 30, mfAfter);
+  const monthlyAfter_heavy = nHeavy * Math.min(effDailyAfter_heavy * 30, mfAfter);
+  const monthlyAfter_total = monthlyAfter_light + monthlyAfter_med + monthlyAfter_heavy;
+
+  // ══════════════════════════════════
+  //   ADDRESSABLE REACH EROSION MODEL
+  // ══════════════════════════════════
+  //
+  // "Addressable reach" = users who have NOT yet exhausted their monthly fcap.
+  // Once a user's cumulative monthly impressions hit mfAfter, they drop out of
+  // the addressable pool for the rest of the month.
+  //
+  // Model: each user's daily consumption is their effDailyAfter value, but with
+  // day-to-day variance controlled by the binge factor.
+  // We model the distribution of "day of exhaustion" across users using a
+  // gamma-distributed cumulative consumption model.
+  //
+  // For a user with mean daily consumption μ and binge factor b (CV = b-1),
+  // their cumulative consumption by day D is roughly Normal(μD, σ²D) where
+  // σ = μ * (b - 1). They exhaust their cap on the day their cumulative hits mfAfter.
+  // The fraction of users exhausted by day D:
+  //   P(exhaust by D) = P(cumulative_D ≥ mfAfter)
+  //                   = Φ((μD - mfAfter) / (σ * √D))   [CLT approximation]
+  //
+  // Addressable fraction on day D = 1 - P(exhausted by D)
+  // Applied per segment, weighted by segment size.
+
+  function normalCDF(x) {
+    // Approximation of Φ(x)
+    const t = 1 / (1 + 0.2316419 * Math.abs(x));
+    const d = 0.3989423 * Math.exp(-x * x / 2);
+    const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.7814779 + t * (-1.8212560 + t * 1.3302744))));
+    return x >= 0 ? 1 - p : p;
+  }
+
+  function addressableFracOnDay(day, meanDaily, mfCap, bingeFactor) {
+    if (meanDaily <= 0) return 1;
+    // Expected cumulative by this day
+    const mu = meanDaily * day;
+    // Std dev of cumulative: σ_daily = meanDaily*(bingeFactor-1), σ_cumulative = σ_daily*√day
+    const sigma_daily = meanDaily * Math.max(0, bingeFactor - 1);
+    const sigma_cum = sigma_daily * Math.sqrt(day);
+    if (sigma_cum < 0.001) {
+      // No variance: deterministic exhaustion
+      return mu >= mfCap ? 0 : 1;
+    }
+    const zScore = (mu - mfCap) / sigma_cum;
+    const pExhausted = normalCDF(zScore);
+    return Math.max(0, 1 - pExhausted);
+  }
+
+  // BEFORE: monthly cap per user = mfBefore × campaigns_eligible
+  // This is so high that almost no user exhausts it in a month
+  const effMonthlyCap_before = mfBefore * Math.min(overlap, campBefore);
+
+  // AFTER: aggregate monthly cap = mfAfter
+  const effMonthlyCap_after = mfAfter;
+
+  // Build day-by-day addressable reach curve for days 1–30
+  const dailyActiveFrac_light = 0.60;
+  const dailyActiveFrac_med   = 0.80;
+  const dailyActiveFrac_heavy = 0.95;
+
+  const dailyActive_light = Math.round(nLight * dailyActiveFrac_light);
+  const dailyActive_med   = Math.round(nMed   * dailyActiveFrac_med);
+  const dailyActive_heavy = Math.round(nHeavy * dailyActiveFrac_heavy);
+  const totalDailyActive  = dailyActive_light + dailyActive_med + dailyActive_heavy;
+
+  const erosionCurve_before = [];
+  const erosionCurve_after  = [];
+
+  for (let day = 1; day <= 30; day++) {
+    // BEFORE addressable: per-segment fraction still under monthly cap
+    const aL_b = addressableFracOnDay(day, effDailyBefore_light, effMonthlyCap_before, binge);
+    const aM_b = addressableFracOnDay(day, effDailyBefore_med,   effMonthlyCap_before, binge);
+    const aH_b = addressableFracOnDay(day, effDailyBefore_heavy, effMonthlyCap_before, binge);
+    const addr_before = (dailyActive_light * aL_b + dailyActive_med * aM_b + dailyActive_heavy * aH_b);
+
+    // AFTER addressable
+    const aL_a = addressableFracOnDay(day, effDailyAfter_light, effMonthlyCap_after, binge);
+    const aM_a = addressableFracOnDay(day, effDailyAfter_med,   effMonthlyCap_after, binge);
+    const aH_a = addressableFracOnDay(day, effDailyAfter_heavy, effMonthlyCap_after, binge);
+    const addr_after  = (dailyActive_light * aL_a + dailyActive_med * aM_a + dailyActive_heavy * aH_a);
+
+    erosionCurve_before.push(addr_before / totalDailyActive);
+    erosionCurve_after.push(addr_after   / totalDailyActive);
+  }
+
+  // Key summary stats from erosion
+  const addrDay1_before  = erosionCurve_before[0];
+  const addrDay1_after   = erosionCurve_after[0];
+  const addrDay15_before = erosionCurve_before[14];
+  const addrDay15_after  = erosionCurve_after[14];
+  const addrDay30_before = erosionCurve_before[29];
+  const addrDay30_after  = erosionCurve_after[29];
+
+  // Users lost from addressable pool by end of month (after vs before)
+  const addrLostByEOM = (addrDay30_before - addrDay30_after); // as fraction of daily active
+  const addrLostUsers = Math.round(addrLostByEOM * totalDailyActive);
+
+  // Day when addressable reach drops below 90% / 75% / 50% of day-1 (after)
+  function dayBelowThreshold(curve, threshold) {
+    for (let i = 0; i < curve.length; i++) {
+      if (curve[i] < curve[0] * threshold) return i + 1;
+    }
+    return '>30';
+  }
+  const dayBelow90_after = dayBelowThreshold(erosionCurve_after, 0.90);
+  const dayBelow75_after = dayBelowThreshold(erosionCurve_after, 0.75);
+
+  // Also keep per-creative reach for the table (simplified)
+  const creativesPerAdset = Math.ceil(campBefore / campAfter);
+  const cOverlap = Math.min(overlap, campBefore);
+
+  function pcrBefore(slots, camps, fc) {
+    if (slots <= 0 || camps <= 0) return 0;
+    return 1 - Math.exp(-Math.min(slots / camps, fc));
+  }
+  function pcrAfter(slots, nC, fc) {
+    if (slots <= 0 || nC <= 0) return 0;
+    const draws = Math.min(slots, fc);
+    if (nC === 1) return draws >= 1 ? 1 : 0;
+    return 1 - Math.pow((nC - 1) / nC, draws);
+  }
+
+  const pcrBefore_light = pcrBefore(effDailyBefore_light, cOverlap, dfBefore);
+  const pcrBefore_med   = pcrBefore(effDailyBefore_med,   cOverlap, dfBefore);
+  const pcrBefore_heavy = pcrBefore(effDailyBefore_heavy, cOverlap, dfBefore);
+  const pcrAfter_light  = pcrAfter(effDailyAfter_light, creativesPerAdset, dfAfter);
+  const pcrAfter_med    = pcrAfter(effDailyAfter_med,   creativesPerAdset, dfAfter);
+  const pcrAfter_heavy  = pcrAfter(effDailyAfter_heavy, creativesPerAdset, dfAfter);
+
+  // ── DROPS ──
+  const dropDailyImps   = (impsBefore_total - impsAfter_total) / impsBefore_total;
+  const dropMonthlyImps = (monthlyBefore_total - monthlyAfter_total) / monthlyBefore_total;
+
+  const heavyBefore = effDailyBefore_heavy;
+  const heavyAfter  = effDailyAfter_heavy;
+  const heavyImprovement = heavyBefore > 0 ? (heavyBefore - heavyAfter) / heavyBefore : 0;
+
+  // fcap sweep (impressions)
+  const fcapRange = [];
+  for (let f = 1; f <= 60; f++) {
+    const a_l = Math.min(effDailyBefore_light, f);
+    const a_m = Math.min(effDailyBefore_med,   f);
+    const a_h = Math.min(effDailyBefore_heavy, f);
+    const total = nLight*a_l + nMed*a_m + nHeavy*a_h;
+    fcapRange.push({ f, pct: total / impsBefore_total });
+  }
+
+  renderResults({
+    dau, nLight, nMed, nHeavy, totalDailyActive,
+    // impressions
+    impsBefore_total, impsAfter_total, dropDailyImps,
+    monthlyBefore_total, monthlyAfter_total, dropMonthlyImps,
+    // power user
+    heavyBefore, heavyAfter, heavyImprovement,
+    // addressable reach erosion
+    erosionCurve_before, erosionCurve_after,
+    addrDay1_before, addrDay1_after,
+    addrDay15_before, addrDay15_after,
+    addrDay30_before, addrDay30_after,
+    addrLostUsers, addrLostByEOM,
+    dayBelow90_after, dayBelow75_after,
+    // per-creative reach (for table)
+    pcrBefore_light, pcrBefore_med, pcrBefore_heavy,
+    pcrAfter_light,  pcrAfter_med,  pcrAfter_heavy,
+    creativesPerAdset,
+    // segment imps
+    effDailyBefore_light, effDailyBefore_med, effDailyBefore_heavy,
+    effDailyAfter_light,  effDailyAfter_med,  effDailyAfter_heavy,
+    // charts
+    fcapRange,
+    dfAfter, dfBefore, campBefore, campAfter,
+    mfAfter, mfBefore, effMonthlyBefore,
+    dailyActiveFrac_light, dailyActiveFrac_med, dailyActiveFrac_heavy,
+    overlap, binge
+  });
+}
+
+// ══════════════════════════════════
+//   RENDER
+// ══════════════════════════════════
+function renderResults(d) {
+  const fmtM = n => (n/1e6).toFixed(1) + 'M';
+  const fmtPct = n => (n*100).toFixed(1) + '%';
+  const fmtInt = n => Math.round(n).toLocaleString();
+
+  const panel = document.getElementById('main-panel');
+  panel.innerHTML = `
+  const puPct   = +document.getElementById('s-pu').value;
+  const lightFrac = 1 - puPct/100 - (1-puPct/100)*0.35;
+  const medFrac   = (1-puPct/100)*0.35;
+  const fmtFrac = f => (f*100).toFixed(1) + '%';
+
+  panel.innerHTML = `
+    <!-- ── IMPRESSIONS ── -->
+    <div class="section-divider">Impressions</div>
+    <div class="headline">
+      <div class="metric-card blue">
+        <div class="card-label">Daily Imps Drop</div>
+        <div class="card-val">${fmtFrac(d.dropDailyImps)}</div>
+        <div class="card-sub">${fmtM(d.impsAfter_total)} from ${fmtM(d.impsBefore_total)}/day</div>
+      </div>
+      <div class="metric-card red">
+        <div class="card-label">Monthly Imps Drop</div>
+        <div class="card-val">${fmtFrac(d.dropMonthlyImps)}</div>
+        <div class="card-sub">${fmtM(d.monthlyAfter_total)} from ${fmtM(d.monthlyBefore_total)}/month</div>
+      </div>
+      <div class="metric-card warn">
+        <div class="card-label">Power User Relief</div>
+        <div class="card-val">${fmtFrac(d.heavyImprovement)}</div>
+        <div class="card-sub">${fmtInt(d.heavyAfter)} vs ${fmtInt(d.heavyBefore)} promos/day</div>
+      </div>
+    </div>
+
+    <!-- ── ADDRESSABLE REACH ── -->
+    <div class="section-divider">Addressable Reach — users not yet exhausted this month</div>
+    <div class="reach-note">
+      <strong>Addressable reach erodes through the month.</strong> Once a user's cumulative monthly impressions hit the monthly fcap, they drop out of the addressable pool entirely — you can no longer serve them promos for the rest of that month. The chart below shows this erosion day by day. The steeper the drop vs the "before" baseline, the more users you're locking out prematurely.
+    </div>
+    <div class="headline-creative">
+      <div class="metric-card ${d.addrDay1_after > 0.97 ? 'green' : 'warn'}">
+        <div class="card-label">Addressable Reach — Day 1</div>
+        <div class="card-val">${fmtFrac(d.addrDay1_after)}</div>
+        <div class="card-sub">Before: ${fmtFrac(d.addrDay1_before)} · ${fmtM(d.totalDailyActive * d.addrDay1_after)} users targetable</div>
+      </div>
+      <div class="metric-card ${d.addrDay15_after > 0.85 ? 'green' : d.addrDay15_after > 0.65 ? 'warn' : 'red'}">
+        <div class="card-label">Addressable Reach — Day 15</div>
+        <div class="card-val">${fmtFrac(d.addrDay15_after)}</div>
+        <div class="card-sub">Before: ${fmtFrac(d.addrDay15_before)} · ${fmtM(d.totalDailyActive * d.addrDay15_after)} users targetable</div>
+      </div>
+      <div class="metric-card ${d.addrDay30_after > 0.70 ? 'green' : d.addrDay30_after > 0.45 ? 'warn' : 'red'}">
+        <div class="card-label">Addressable Reach — Day 30 (EOM)</div>
+        <div class="card-val">${fmtFrac(d.addrDay30_after)}</div>
+        <div class="card-sub">Before: ${fmtFrac(d.addrDay30_before)} · ${fmtInt(d.addrLostUsers)} users locked out vs before</div>
+      </div>
+    </div>
+
+    <!-- ── CHARTS ── -->
+    <div class="charts-row">
+      <div class="chart-box">
+        <div class="chart-title">Addressable Reach Erosion — % of Daily Active Pool Remaining</div>
+        <canvas id="erosion-chart" height="200"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Daily Impressions Before vs After — by Segment</div>
+        <canvas id="split-chart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- ── PER-CREATIVE REACH TABLE ── -->
+    <div class="table-box">
+      <div class="chart-title">Per-Creative Reach Probability by Segment (Daily) — for Growth team</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Segment</th>
+            <th>Promo Imps/Day Before</th>
+            <th>Promo Imps/Day After</th>
+            <th>P(see specific show) Before</th>
+            <th>P(see specific show) After</th>
+            <th>Per-Creative Reach Drop</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-label">🟦 Light (${fmtFrac(lightFrac)})</td>
+            <td class="td-num">${d.effDailyBefore_light}</td>
+            <td class="td-num">${d.effDailyAfter_light}</td>
+            <td class="td-num">${fmtFrac(d.pcrBefore_light)}</td>
+            <td class="td-num">${fmtFrac(d.pcrAfter_light)}</td>
+            <td class="td-drop ${d.pcrBefore_light <= d.pcrAfter_light ? 'good' : ''}">${fmtFrac(Math.max(0,(d.pcrBefore_light - d.pcrAfter_light)/Math.max(d.pcrBefore_light,0.0001)))}</td>
+          </tr>
+          <tr>
+            <td class="td-label">🟧 Medium (${fmtFrac(medFrac)})</td>
+            <td class="td-num">${d.effDailyBefore_med}</td>
+            <td class="td-num">${d.effDailyAfter_med}</td>
+            <td class="td-num">${fmtFrac(d.pcrBefore_med)}</td>
+            <td class="td-num">${fmtFrac(d.pcrAfter_med)}</td>
+            <td class="td-drop ${d.pcrBefore_med <= d.pcrAfter_med ? 'good' : ''}">${fmtFrac(Math.max(0,(d.pcrBefore_med - d.pcrAfter_med)/Math.max(d.pcrBefore_med,0.0001)))}</td>
+          </tr>
+          <tr>
+            <td class="td-label">🟥 Power (${puPct}%)</td>
+            <td class="td-num">${d.effDailyBefore_heavy}</td>
+            <td class="td-num">${d.effDailyAfter_heavy}</td>
+            <td class="td-num">${fmtFrac(d.pcrBefore_heavy)}</td>
+            <td class="td-num">${fmtFrac(d.pcrAfter_heavy)}</td>
+            <td class="td-drop">${fmtFrac(Math.max(0,(d.pcrBefore_heavy - d.pcrAfter_heavy)/Math.max(d.pcrBefore_heavy,0.0001)))}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── ASSUMPTIONS ── -->
+    <div class="assumptions">
+      <strong>Model Assumptions</strong>
+      <ul>
+        <li><strong>Addressable reach</strong> = users who have not yet consumed their monthly fcap. Modelled as a daily erosion curve using a CLT approximation: P(user exhausted by day D) = Φ((μD − cap) / (σ√D)), where μ = daily impressions and σ = μ × (binge − 1).</li>
+        <li>Binge factor ${d.binge.toFixed(1)}× controls daily variance. At 1.0 all users consume uniformly (deterministic exhaustion). Higher values mean some users front-load watch time and exhaust their cap earlier in the month.</li>
+        <li>Before monthly cap per user: ${fmtInt(d.mfBefore)} × ${Math.min(d.overlap, d.campBefore)} eligible campaigns = <strong>${fmtInt(d.mfBefore * Math.min(d.overlap, d.campBefore))}</strong> impressions/month — effectively never exhausted for most users.</li>
+        <li>After monthly cap: <strong>${fmtInt(d.mfAfter)}</strong> impressions/month aggregate. At ${fmtInt(d.effDailyAfter_heavy)} impressions/day, power users exhaust this in ~${Math.ceil(d.mfAfter / Math.max(d.effDailyAfter_heavy, 1))} days (uniform), or sooner with binge variance.</li>
+        <li>Per-creative reach (table above) uses Poisson/coupon-collector approximation for before, and round-robin binomial for after across ${fmtInt(d.creativesPerAdset)} creatives per adset.</li>
+        <li>Model does not account for pacing algorithms, P5/P9/P10 priority rules, or non-uniform creative weighting.</li>
+      </ul>
+    </div>
+  `;
+
+  // ── Chart 1: Addressable reach erosion ──
+  const ctx1 = document.getElementById('erosion-chart').getContext('2d');
+  drawErosionChart(ctx1, d.erosionCurve_before, d.erosionCurve_after);
+
+  // ── Chart 2: Impressions by segment ──
+  const ctx2 = document.getElementById('split-chart').getContext('2d');
+  drawGroupedBar(ctx2,
+    ['Light', 'Medium', 'Power'],
+    [d.nLight * d.effDailyBefore_light / 1e6, d.nMed * d.effDailyBefore_med / 1e6, d.nHeavy * d.effDailyBefore_heavy / 1e6],
+    [d.nLight * d.effDailyAfter_light  / 1e6, d.nMed * d.effDailyAfter_med  / 1e6, d.nHeavy * d.effDailyAfter_heavy  / 1e6]
+  );
+}
+
+// ── Addressable Reach Erosion Chart ──
+function drawErosionChart(ctx, curveBefore, curveAfter) {
+  const W = ctx.canvas.parentElement.clientWidth - 40;
+  const H = 200;
+  ctx.canvas.width  = W;
+  ctx.canvas.height = H;
+  const pad = { t: 14, r: 14, b: 32, l: 52 };
+  const pw = W - pad.l - pad.r;
+  const ph = H - pad.t - pad.b;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // grid
+  ctx.strokeStyle = '#272c3d';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ph * (1 - i/4);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+    ctx.fillStyle = '#6b7694';
+    ctx.font = '10px IBM Plex Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText((i * 25) + '%', pad.l - 6, y + 4);
+  }
+
+  // x-axis day markers
+  ctx.fillStyle = '#6b7694';
+  ctx.font = '10px IBM Plex Mono';
+  ctx.textAlign = 'center';
+  [1, 5, 10, 15, 20, 25, 30].forEach(day => {
+    const x = pad.l + ((day - 1) / 29) * pw;
+    ctx.fillText(day, x, pad.t + ph + 14);
+  });
+  ctx.fillText('Day of Month', pad.l + pw/2, H - 2);
+
+  function drawCurve(curve, color, dash) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    curve.forEach((v, i) => {
+      const x = pad.l + (i / 29) * pw;
+      const y = pad.t + ph * (1 - v);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Fill area between curves (lost addressable users)
+  ctx.fillStyle = 'rgba(255,107,79,0.10)';
+  ctx.beginPath();
+  curveBefore.forEach((v, i) => {
+    const x = pad.l + (i / 29) * pw;
+    const y = pad.t + ph * (1 - v);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  for (let i = 29; i >= 0; i--) {
+    const x = pad.l + (i / 29) * pw;
+    const y = pad.t + ph * (1 - curveAfter[i]);
+    ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  drawCurve(curveBefore, '#4f9eff', [5, 3]);  // before = blue dashed
+  drawCurve(curveAfter,  '#4fffb0');           // after = green solid
+
+  // Legend
+  ctx.setLineDash([5, 3]);
+  ctx.strokeStyle = '#4f9eff'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(pad.l, H - 6); ctx.lineTo(pad.l + 22, H - 6); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#6b7694'; ctx.font = '10px IBM Plex Mono'; ctx.textAlign = 'left';
+  ctx.fillText('Before', pad.l + 26, H - 2);
+
+  ctx.strokeStyle = '#4fffb0'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(pad.l + 80, H - 6); ctx.lineTo(pad.l + 102, H - 6); ctx.stroke();
+  ctx.fillText('After', pad.l + 106, H - 2);
+
+  ctx.fillStyle = 'rgba(255,107,79,0.4)';
+  ctx.fillRect(pad.l + 150, H - 10, 12, 8);
+  ctx.fillStyle = '#6b7694';
+  ctx.fillText('Lost addressable pool', pad.l + 166, H - 2);
+}
+
+// ── Mini chart renderers (vanilla canvas) ──
+function drawLineChart(ctx, xs, ys, opts) {
+  const W = ctx.canvas.parentElement.clientWidth - 40;
+  const H = 180;
+  ctx.canvas.width  = W;
+  ctx.canvas.height = H;
+  const pad = { t: 10, r: 10, b: 30, l: 48 };
+  const pw = W - pad.l - pad.r;
+  const ph = H - pad.t - pad.b;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // grid
+  ctx.strokeStyle = '#272c3d';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ph * (1 - i/4);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+    ctx.fillStyle = '#6b7694';
+    ctx.font = '10px IBM Plex Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText((i * 25) + '%', pad.l - 6, y + 4);
+  }
+
+  // mark current fcap
+  if (opts.markX) {
+    const xi = xs.indexOf(opts.markX);
+    if (xi >= 0) {
+      const x = pad.l + (xi / (xs.length-1)) * pw;
+      ctx.strokeStyle = '#ff6b4f';
+      ctx.setLineDash([4, 3]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#ff6b4f';
+      ctx.font = '10px IBM Plex Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText('fcap=' + opts.markX, x, pad.t + ph + 22);
+    }
+  }
+
+  // line
+  ctx.strokeStyle = opts.color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  xs.forEach((x, i) => {
+    const cx = pad.l + (i / (xs.length-1)) * pw;
+    const cy = pad.t + ph * (1 - ys[i]/100);
+    i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+  });
+  ctx.stroke();
+
+  // fill
+  ctx.fillStyle = opts.color + '18';
+  ctx.beginPath();
+  xs.forEach((x, i) => {
+    const cx = pad.l + (i / (xs.length-1)) * pw;
+    const cy = pad.t + ph * (1 - ys[i]/100);
+    i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+  });
+  ctx.lineTo(pad.l + pw, pad.t + ph);
+  ctx.lineTo(pad.l, pad.t + ph);
+  ctx.closePath();
+  ctx.fill();
+
+  // x-axis labels
+  ctx.fillStyle = '#6b7694';
+  ctx.font = '10px IBM Plex Mono';
+  ctx.textAlign = 'center';
+  [1, 10, 20, 30, 40, 50, 60].forEach(v => {
+    const i = xs.indexOf(v);
+    if (i >= 0) {
+      const cx = pad.l + (i / (xs.length-1)) * pw;
+      ctx.fillText(v, cx, pad.t + ph + 14);
+    }
+  });
+  ctx.fillStyle = '#6b7694';
+  ctx.textAlign = 'center';
+  ctx.fillText('Aggregate Daily FCap → Per-Creative Reach %', pad.l + pw/2, H - 2);
+}
+
+function drawGroupedBar(ctx, labels, before, after) {
+  const W = ctx.canvas.parentElement.clientWidth - 40;
+  const H = 180;
+  ctx.canvas.width  = W;
+  ctx.canvas.height = H;
+  const pad = { t: 10, r: 10, b: 30, l: 52 };
+  const pw = W - pad.l - pad.r;
+  const ph = H - pad.t - pad.b;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const maxVal = Math.max(...before, ...after);
+  const n = labels.length;
+  const groupW = pw / n;
+  const barW = groupW * 0.32;
+
+  // grid
+  ctx.strokeStyle = '#272c3d';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ph * (1 - i/4);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+    ctx.fillStyle = '#6b7694';
+    ctx.font = '10px IBM Plex Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText((maxVal * i / 4).toFixed(1) + 'M', pad.l - 4, y + 4);
+  }
+
+  labels.forEach((lbl, i) => {
+    const gx = pad.l + i * groupW + groupW * 0.1;
+
+    // before bar
+    const bh = (before[i] / maxVal) * ph;
+    ctx.fillStyle = '#4f9eff';
+    ctx.fillRect(gx, pad.t + ph - bh, barW, bh);
+
+    // after bar
+    const ah = (after[i] / maxVal) * ph;
+    ctx.fillStyle = '#ff6b4f';
+    ctx.fillRect(gx + barW + 4, pad.t + ph - ah, barW, ah);
+
+    // label
+    ctx.fillStyle = '#6b7694';
+    ctx.font = '11px IBM Plex Sans';
+    ctx.textAlign = 'center';
+    ctx.fillText(lbl, gx + barW + 2, pad.t + ph + 14);
+  });
+
+  // legend
+  ctx.fillStyle = '#4f9eff'; ctx.fillRect(pad.l, H - 8, 10, 4);
+  ctx.fillStyle = '#6b7694'; ctx.font = '10px IBM Plex Mono'; ctx.textAlign = 'left';
+  ctx.fillText('Before', pad.l + 14, H - 4);
+  ctx.fillStyle = '#ff6b4f'; ctx.fillRect(pad.l + 70, H - 8, 10, 4);
+  ctx.fillText('After', pad.l + 84, H - 4);
+}
+</script>
+</body>
+</html>
