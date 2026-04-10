@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JioStar Ads — Simulators</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0f11;
+      --surface: #16181c;
+      --border: #2a2d33;
+      --text-primary: #e8e9eb;
+      --text-secondary: #7a7f8a;
+      --accent: #4f8ef7;
+      --accent-dim: rgba(79, 142, 247, 0.1);
+      --tag-bg: #1e2128;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      padding: 60px 40px;
+    }
+
+    header {
+      max-width: 720px;
+      margin: 0 auto 60px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 32px;
+    }
+
+    .label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    h1 span {
+      font-weight: 500;
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    .grid {
+      max-width: 720px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .card:hover .arrow {
+      transform: translateX(3px);
+      color: var(--accent);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .card-icon {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .arrow {
+      font-size: 16px;
+      color: var(--text-secondary);
+      transition: transform 0.15s ease, color 0.15s ease;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      font-weight: 300;
+      flex: 1;
+    }
+
+    .tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      background: var(--tag-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    .card.coming-soon {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .card.coming-soon .card-title::after {
+      content: ' — coming soon';
+      font-weight: 300;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    footer {
+      max-width: 720px;
+      margin: 48px auto 0;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 40px 20px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="label">JioHotstar Ads</div>
+    <h1>Ads <span>Simulators</span></h1>
+    <p class="subtitle">Internal modelling and scenario tools for ads serving, forecasting, and campaign planning. Not for external sharing.</p>
+  </header>
+
+  <div class="grid">
+
+    <a class="card" href="./fcap-simulator/index.html">
+      <div class="card-header">
+        <div class="card-icon">⚙️</div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="card-title">Fcap Simulator</div>
+      <div class="card-desc">Model campaign consolidation scenarios. Simulate frequency cap impact on addressable reach across 30-day windows.</div>
+      <div class="tags">
+        <span class="tag">fcap</span>
+        <span class="tag">reach</span>
+        <span class="tag">promos</span>
+      </div>
+    </a>
+
+    <div class="card coming-soon">
+      <div class="card-header">
+        <div class="card-icon">📡</div>
+      </div>
+      <div class="card-title">RF Forecasting</div>
+      <div class="card-desc">Unified reach and frequency modelling across JHS VOD, Live, and JioAds supply sources.</div>
+      <div class="tags">
+        <span class="tag">forecasting</span>
+        <span class="tag">R&F</span>
+        <span class="tag">GeoAds</span>
+      </div>
+    </div>
+
+    <div class="card coming-soon">
+      <div class="card-header">
+        <div class="card-icon">🎯</div>
+      </div>
+      <div class="card-title">Serving Strategy</div>
+      <div class="card-desc">Waterfall and demand routing scenario planner for Serving 4.0.</div>
+      <div class="tags">
+        <span class="tag">serving</span>
+        <span class="tag">waterfall</span>
+      </div>
+    </div>
+
+    <div class="card coming-soon">
+      <div class="card-header">
+        <div class="card-icon">📊</div>
+      </div>
+      <div class="card-title">Campaign Diversity</div>
+      <div class="card-desc">HHI, Gini, ENC analysis for impression concentration across tournaments.</div>
+      <div class="tags">
+        <span class="tag">diversity</span>
+        <span class="tag">HHI</span>
+        <span class="tag">IPL</span>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span>ads-simulators</span>
+    <span>JioStar Ads Platform · Internal use only</span>
+  </footer>
+
+</body>
+</html>
