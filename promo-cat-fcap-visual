@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Structure Diagram</title>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-family: 'EB Garamond', serif;
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #94a3b8;
+            font-weight: 300;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .column h2 {
+            font-family: 'EB Garamond', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+            position: sticky;
+            top: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            padding: 0.5rem 0;
+            z-index: 10;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .campaign {
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 1px solid;
+            transition: all 0.2s ease;
+        }
+
+        .campaign:hover {
+            border-color: opacity;
+        }
+
+        /* Campaign Colors */
+        .campaign.c1 {
+            background-color: rgba(30, 58, 138, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .campaign.c2 {
+            background-color: rgba(88, 28, 135, 0.3);
+            border-color: rgba(168, 85, 247, 0.5);
+        }
+
+        .campaign.c3 {
+            background-color: rgba(120, 53, 15, 0.3);
+            border-color: rgba(251, 146, 60, 0.5);
+        }
+
+        .campaign-title {
+            font-family: 'EB Garamond', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .campaign.c1 .campaign-title {
+            color: #60a5fa;
+        }
+
+        .campaign.c2 .campaign-title {
+            color: #a78bfa;
+        }
+
+        .campaign.c3 .campaign-title {
+            color: #fb923c;
+        }
+
+        .dot {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+        }
+
+        .campaign.c1 .dot {
+            background-color: #3b82f6;
+        }
+
+        .campaign.c2 .dot {
+            background-color: #a855f7;
+        }
+
+        .campaign.c3 .dot {
+            background-color: #fb923c;
+        }
+
+        .segments {
+            margin-left: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .segment {
+            background-color: rgba(15, 23, 42, 0.5);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border-left: 2px solid;
+        }
+
+        .campaign.c1 .segment {
+            border-left-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .campaign.c2 .segment {
+            border-left-color: rgba(168, 85, 247, 0.5);
+        }
+
+        .campaign.c3 .segment {
+            border-left-color: rgba(251, 146, 60, 0.5);
+        }
+
+        .segment-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .campaign.c1 .segment-title {
+            color: #60a5fa;
+        }
+
+        .campaign.c2 .segment-title {
+            color: #a78bfa;
+        }
+
+        .campaign.c3 .segment-title {
+            color: #fb923c;
+        }
+
+        .segment-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .info-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            color: #64748b;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .info-value {
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Event Structure</h1>
+            <p>Campaign & Segment Configuration</p>
+        </div>
+
+        <div class="grid">
+            <!-- Original Structure -->
+            <div class="column">
+                <h2>Original Structure</h2>
+
+                <!-- C1: Chitraiya -->
+                <div class="campaign c1">
+                    <div class="campaign-title">
+                        <span class="dot"></span>
+                        C1: Chitraiya
+                    </div>
+                    <div class="segments">
+                        <div class="segment">
+                            <div class="segment-title">AS1: Hindi Takeover</div>
+                            <div class="segment-info">
+                                <div class="info-group">
+                                    <div class="info-label">Priority</div>
+                                    <div class="info-value">P5</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Goal/Target</div>
+                                    <div class="info-value">10 min imps</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="segment">
+                            <div class="segment-title">AS2: Tamil Takeover</div>
+                            <div class="segment-info">
+                                <div class="info-group">
+                                    <div class="info-label">Priority</div>
+                                    <div class="info-value">P9</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Goal/Target</div>
+                                    <div class="info-value">3 min imps</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- C2: Thursday -->
+                <div class="campaign c2">
+                    <div class="campaign-title">
+                        <span class="dot"></span>
+                        C2: Thursday
+                    </div>
+                    <div class="segments">
+                        <div class="segment">
+                            <div class="segment-title">AS3: Hindi</div>
+                            <div class="segment-info">
+                                <div class="info-group">
+                                    <div class="info-label">Priority</div>
+                                    <div class="info-value">P5</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Goal/Target</div>
+                                    <div class="info-value">20 min imps</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- C3: Kaataan -->
+                <div class="campaign c3">
+                    <div class="campaign-title">
+                        <span class="dot"></span>
+                        C3: Kaataan
+                    </div>
+                    <div class="segments">
+                        <div class="segment">
+                            <div class="segment-title">AS4: Hindi</div>
+                            <div class="segment-info">
+                                <div class="info-group">
+                                    <div class="info-label">Priority</div>
+                                    <div class="info-value">P9</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Goal/Target</div>
+                                    <div class="info-value">2 min imps</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="segment">
+                            <div class="segment-title">AS5: Tamil</div>
+                            <div class="segment-info">
+                                <div class="info-group">
+                                    <div class="info-label">Priority</div>
+                                    <div class="info-value">P5</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Goal/Target</div>
+                                    <div class="info-value">10 min imps</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Structure -->
+            <div class="column">
+                <h2>New Structure</h2>
+
+                <!-- C1: Hindi -->
+                <div class="campaign c1">
+                    <div class="campaign-title">
+                        <span class="dot"></span>
+                        C1: Hindi
+                    </div>
+                    <div class="segments">
+                        <div class="segment" style="border-left-color: rgba(59, 130, 246, 0.5);">
+                            <div class="segment-title" style="color: #60a5fa;">AS1: Chitraiya</div>
+                            <div class="segment-info">
+                                <div class="info-group">
+                                    <div class="info-label">Priority</div>
+                                    <div class="info-value">P5</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Goal/Target</div>
+                                    <div class="info-value">10 min imps</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="segment" style="border-left-color: rgba(168, 85, 247, 0.5);">
+                            <div class="segment-title" style="color: #a78bfa;">AS3: Thursday</div>
+                            <div class="segment-info">
+                                <div class="info-group">
+                                    <div class="info-label">Priority</div>
+                                    <div class="info-value">P5</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Goal/Target</div>
+                                    <div class="info-value">20 min imps</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="segment" style="border-left-color: rgba(251, 146, 60, 0.5);">
+                            <div class="segment-title" style="color: #fb923c;">AS4: Kaataan</div>
+                            <div class="segment-info">
+                                <div class="info-group">
+                                    <div class="info-label">Priority</div>
+                                    <div class="info-value">P9</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Goal/Target</div>
+                                    <div class="info-value">2 min imps</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- C2: Tamil -->
+                <div class="campaign c2">
+                    <div class="campaign-title">
+                        <span class="dot"></span>
+                        C2: Tamil
+                    </div>
+                    <div class="segments">
+                        <div class="segment" style="border-left-color: rgba(59, 130, 246, 0.5);">
+                            <div class="segment-title" style="color: #60a5fa;">AS2: Chitraiya</div>
+                            <div class="segment-info">
+                                <div class="info-group">
+                                    <div class="info-label">Priority</div>
+                                    <div class="info-value">P9</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Goal/Target</div>
+                                    <div class="info-value">3 min imps</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="segment" style="border-left-color: rgba(251, 146, 60, 0.5);">
+                            <div class="segment-title" style="color: #fb923c;">AS5: Kaataan</div>
+                            <div class="segment-info">
+                                <div class="info-group">
+                                    <div class="info-label">Priority</div>
+                                    <div class="info-value">P5</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Goal/Target</div>
+                                    <div class="info-value">10 min imps</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
